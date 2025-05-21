@@ -1,0 +1,184 @@
+openapi: 3.0.0
+info:
+  title: Trading Time Series Forecast API
+  description: A REST API for time series forecasting in trading applications
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:5000
+    description: Development server
+
+paths:
+  /:
+    get:
+      summary: Get API information
+      description: Returns API status and available endpoints
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  api_status:
+                    type: string
+                    example: healthy
+                  available_endpoints:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        path:
+                          type: string
+                        description:
+                          type: string
+                  version:
+                    type: string
+                    example: 1.0.0
+
+  /predict:
+    get:
+      summary: Get trading predictions
+      description: Returns trading predictions for the current date
+      responses:
+        '200':
+          description: Successful prediction
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  prediction_date:
+                    type: string
+                    format: date
+                  model_used:
+                    type: string
+                  prediction:
+                    type: object
+                    properties:
+                      signal:
+                        type: string
+                        enum: [buy, sell, hold]
+                      confidence:
+                        type: number
+                        format: float
+                        minimum: 0
+                        maximum: 1
+
+  /model-info:
+    get:
+      summary: List all models
+      description: Returns information about all available models
+      responses:
+        '200':
+          description: List of models
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  models:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ModelInfo'
+                  total_models:
+                    type: integer
+                  last_updated:
+                    type: string
+                    format: date
+
+  /model-info/{model_name}:
+    get:
+      summary: Get specific model information
+      description: Returns detailed information about a specific model
+      parameters:
+        - name: model_name
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Name of the model (e.g., lstm, gru)
+      responses:
+        '200':
+          description: Model information
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  model:
+                    $ref: '#/components/schemas/ModelInfo'
+                  path:
+                    type: string
+                  status:
+                    type: string
+                  last_checked:
+                    type: string
+                    format: date-time
+        '404':
+          description: Model not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Model 'unknown_model' not found"
+
+components:
+  schemas:
+    ModelInfo:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+          enum: [LSTM, GRU]
+        last_trained:
+          type: string
+          format: date
+        accuracy:
+          type: number
+          format: float
+        parameters:
+          type: object
+          properties:
+            layers:
+              type: integer
+            units:
+              type: integer
+            dropout:
+              type: number
+        backtest_metrics:
+          type: object
+          properties:
+            sharpe_ratio:
+              type: number
+            max_drawdown_pct:
+              type: number
+            win_rate_pct:
+              type: number
+            total_return_pct:
+              type: number
+            annual_return_pct:
+              type: number
+            volatility_pct:
+              type: number
+            sortino_ratio:
+              type: number
+            trades_per_month:
+              type: number
+            avg_holding_period_days:
+              type: number
+            backtest_period:
+              type: object
+              properties:
+                start:
+                  type: string
+                  format: date
+                end:
+                  type: string
+                  format: date
