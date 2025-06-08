@@ -23,9 +23,11 @@ def create_app():
     from .routes import main
     from .predict import predict
     from .model_info import model_info
+    from .trades import trades
 
     app.register_blueprint(main)
     app.register_blueprint(predict)
     app.register_blueprint(model_info)
+    app.register_blueprint(trades)
 
     return app

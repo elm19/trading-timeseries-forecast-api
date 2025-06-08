@@ -1,89 +1,85 @@
 from flask import Blueprint, jsonify, abort
+from sqlalchemy import text
 import os
 from datetime import datetime
+from . import db
 
 model_info = Blueprint('model_info', __name__)
 
-# Dictionary to store model information (in a real app, this would come from a database)
-MODELS = {
-    'lstm': {
-        "id": "lstm",
-        "type": "LSTM",
-        "last_trained": "2025-05-20",
-        "accuracy": 0.89,
-        "parameters": {
-            "layers": 3,
-            "units": 64,
-            "dropout": 0.2
-        },
-        "backtest_metrics": {
-            "sharpe_ratio": 2.45,
-            "max_drawdown_pct": -15.3,
-            "win_rate_pct": 68.5,
-            "total_return_pct": 145.8,
-            "annual_return_pct": 32.4,
-            "volatility_pct": 18.2,
-            "sortino_ratio": 2.85,
-            "trades_per_month": 42,
-            "avg_holding_period_days": 3.5,
-            "backtest_period": {
-                "start": "2024-01-01",
-                "end": "2025-05-20"
-            }
-        }
-    },
-    'gru': {
-        "id": "gru",
-        "type": "GRU",
-        "last_trained": "2025-05-19",
-        "accuracy": 0.87,
-        "parameters": {
-            "layers": 2,
-            "units": 32,
-            "dropout": 0.1
-        },
-        "backtest_metrics": {
-            "sharpe_ratio": 2.12,
-            "max_drawdown_pct": -18.7,
-            "win_rate_pct": 65.2,
-            "total_return_pct": 128.3,
-            "annual_return_pct": 29.8,
-            "volatility_pct": 19.5,
-            "sortino_ratio": 2.45,
-            "trades_per_month": 38,
-            "avg_holding_period_days": 4.2,
-            "backtest_period": {
-                "start": "2024-01-01",
-                "end": "2025-05-19"
-            }
-        }
-    }
-}
 
 @model_info.route('/model-info')
 def home():
-    dummy_response = {
-        "models": list(MODELS.values()),
-        "total_models": len(MODELS),
-        "last_updated": datetime.now().strftime("%Y-%m-%d")
-    }
-    return jsonify(dummy_response)
+    try:
+        with db.engine.connect() as connection:
+            query = text("SELECT * FROM model_info")
+            result = connection.execute(query).fetchall()
 
-@model_info.route('/model-info/<model_name>')
-def get_model_info(model_name):
-    model_name = model_name.lower()
-    if model_name not in MODELS:
-        abort(404, description=f"Model '{model_name}' not found")
-    
-    model_path = os.path.join(os.path.dirname(__file__), 'models', model_name)
-    
-    # In a real application, you would load the model's metadata from the model file
-    # or a database. For now, we'll return the dummy data
-    model_data = MODELS[model_name]
-    
-    return jsonify({
-        "model": model_data,
-        "path": model_path,
-        "status": "available",
-        "last_checked": datetime.now().isoformat()
-    })
+        if result:
+            models = [dict(row._mapping) for row in result]
+            return jsonify({
+                "models": models,
+                "total_models": len(models),
+                "last_updated": datetime.now().strftime("%Y-%m-%d")
+            })
+        else:
+            return jsonify({"error": "No models found in the database."}), 404
+    except Exception as e:
+        return jsonify({"error": f"Database query failed: {str(e)}"}), 500
+
+@model_info.route('/model-info/<model_id>')
+def get_model_info(model_id):
+    try:
+        with db.engine.connect() as connection:
+            query = text("SELECT * FROM model_info WHERE modelid = :model_id")
+            result = connection.execute(query, {"model_id": model_id}).fetchone()
+
+        if result:
+            model_data = dict(result._mapping)
+            return jsonify({
+                "model": model_data,
+                "status": "available",
+                "last_checked": datetime.now().isoformat()
+            })
+        else:
+            return jsonify({"error": f"Model with ID '{model_id}' not found."}), 404
+    except Exception as e:
+        return jsonify({"error": f"Database query failed: {str(e)}"}), 500
+
+@model_info.route('/market', defaults={'market_name': None})
+@model_info.route('/market/<market_name>')
+def get_models_or_markets(market_name):
+    try:
+        with db.engine.connect() as connection:
+            if market_name:
+                # Query models for the specified market
+                query = text("SELECT * FROM model_info WHERE market = :market_name")
+                result = connection.execute(query, {"market_name": market_name}).fetchall()
+
+                if result:
+                    models = [dict(row._mapping) for row in result]
+                    return jsonify({
+                        "market": market_name,
+                        "models": models,
+                        "total_models": len(models),
+                        "last_checked": datetime.now().isoformat()
+                    })
+                else:
+                    return jsonify({"error": f"No models found for market '{market_name}'."}), 404
+            else:
+                # Query all available markets
+                query = text("SELECT DISTINCT market FROM model_info")
+                result = connection.execute(query).fetchall()
+
+                if result:
+                    markets = [row[0] for row in result]
+                    return jsonify({
+                        "available_markets": markets,
+                        "total_markets": len(markets),
+                        "last_checked": datetime.now().isoformat()
+                    })
+                else:
+                    return jsonify({"error": "No markets found in the database."}), 404
+    except Exception as e:
+        return jsonify({"error": f"Database query failed: {str(e)}"}), 500
+
+
