@@ -16,7 +16,7 @@ def get_trades():
 
     # Calculate the offset and limit based on the range parameter
     offset = range_param * 100
-    limit = 100
+    limit = 20
 
     try:
         with db.engine.connect() as connection:
