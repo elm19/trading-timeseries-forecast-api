@@ -1,0 +1,25 @@
+name: Run Model Predictions
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  run-predictions:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Log model folders and files
+        run: |
+          echo "Listing model folders and files..."
+          for model_dir in models/*; do
+            if [ -d "$model_dir" ]; then
+              echo "Found model folder: $model_dir"
+              echo "Files in $model_dir:";
+              ls "$model_dir"
+            fi
+          done
