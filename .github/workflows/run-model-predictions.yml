@@ -19,7 +19,12 @@ jobs:
           auto-activate-base: false
           activate-environment: prediction-env
           environment-file: environment_prediction.yml
-          python-version: 3.11  
+          python-version: 3.11
+
+      - name: Install pip-only packages
+        shell: bash -l {0}
+        run: |
+          pip install yfinance
 
       - name: Run prediction script
         shell: bash -l {0}
