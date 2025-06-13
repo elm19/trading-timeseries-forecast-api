@@ -1,0 +1,15 @@
+name: goldspot-predictor
+channels:
+  - https://repo.anaconda.com/pkgs/main
+  - https://repo.anaconda.com/pkgs/r
+dependencies:
+  - matplotlib
+  - pandas
+  - python=3.11
+  - seaborn
+  - scikit-learn
+  - numpy
+  - tensorflow
+  - keras
+  - ipykernel
+prefix: /home/elm19/miniconda3/envs/goldspot-predictor

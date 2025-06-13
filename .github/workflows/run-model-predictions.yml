@@ -13,14 +13,20 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Install requirements for prediction
-        run: |
-          pip install -r requirements_predict.txt
+      - name: Set up Miniconda
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          auto-activate-base: false
+          activate-environment: prediction-env
+          environment-file: environment_prediction.yml
+          python-version: 3.11  
 
       - name: Run prediction script
+        shell: bash -l {0}
         run: |
           python models/model1/predict.py
 
       - name: Display script output
+        shell: bash -l {0}
         run: |
           echo "Script output displayed above."
