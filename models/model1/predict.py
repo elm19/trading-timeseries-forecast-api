@@ -85,8 +85,8 @@ def process(df_raw, scaler, dev = True, ind=True):
     X, Y = sequence(df)
     return X, Y
 
-# Fetch latest 54 data points for gold futures market from Yahoo Finance
-data = yf.download('GC=F', period='54d', interval='1d', auto_adjust=False)
+# Fetch latest 55 data points for gold futures market from Yahoo Finance
+data = yf.download('GC=F', period='55d', interval='1d', auto_adjust=False)
 data.reset_index(inplace=True)
 print("Data fetched:", data.head())
 # Load scaler
