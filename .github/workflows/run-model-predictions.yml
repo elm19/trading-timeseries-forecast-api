@@ -25,6 +25,12 @@ jobs:
         shell: bash -l {0}
         run: |
           pip install yfinance pandas_ta==0.3.14b0
+      
+      - name: Patch pandas_ta to fix numpy.NaN import
+        shell: bash -l {0}
+        run: |
+          sed -i 's/from numpy import NaN as npNaN/from numpy import nan as npNaN/' $(python -c "import pandas_ta, os; print(os.path.join(pandas_ta.__path__[0], 'momentum/squeeze_pro.py'))")
+
 
       - name: Run prediction script
         shell: bash -l {0}
