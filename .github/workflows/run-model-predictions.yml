@@ -24,7 +24,7 @@ jobs:
       - name: Install pip-only packages
         shell: bash -l {0}
         run: |
-          pip install yfinance pandas_ta
+          pip install yfinance pandas_ta==0.3.14b0
 
       - name: Run prediction script
         shell: bash -l {0}
