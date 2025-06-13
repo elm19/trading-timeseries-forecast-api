@@ -1,0 +1,22 @@
+name: Log Models
+
+on:
+  schedule:
+    - cron: '*/1 * * * *' # Runs every minute
+
+jobs:
+  log-models:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Log model folders
+        run: |
+          echo "Listing model folders..."
+          for model_dir in models/*; do
+            if [ -d "$model_dir" ]; then
+              echo "Found model folder: $model_dir"
+            fi
+          done

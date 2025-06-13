@@ -15,7 +15,7 @@ def get_trades():
     range_param = int(request.args.get('range', 0))
 
     # Calculate the offset and limit based on the range parameter
-    offset = range_param * 100
+    offset = range_param * 5
     limit = 20
 
     try:
