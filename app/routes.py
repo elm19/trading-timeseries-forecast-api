@@ -1,4 +1,4 @@
-from flask import Blueprint, Response
+from flask import Blueprint, Response, request, jsonify
 from . import db
 from sqlalchemy import text
 import json 
@@ -32,3 +32,31 @@ def test_db_connection():
         return "Database connection successful!", 200
     except Exception as e:
         return f"Database connection failed: {str(e)}", 500
+
+
+@main.route('/save-predictions', methods=['POST'])
+def save_predictions_to_db():
+    try:
+        # Parse JSON data from the request
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "Request body is empty or invalid"}), 400
+
+        # Debugging: Print the received data
+        print("Received data:", data)
+
+        # Insert data into the database
+        with db.engine.connect() as connection:
+            query = text("INSERT INTO predictions (date, modelid, prediction, proba_buy, proba_hold, proba_sell) VALUES (:date, :modelid, :prediction, :proba_buy, :proba_hold, :proba_sell)")
+            connection.execute(query, {
+                "date": data.get('date'),
+                "modelid": data.get('modelid'),
+                "prediction": data.get('prediction'),
+                "proba_buy": data.get('proba_buy'),
+                "proba_hold": data.get('proba_hold'),
+                "proba_sell": data.get('proba_sell')
+            })
+        return jsonify({"status": "success"}), 200
+    except Exception as e:
+        print("Error:", e)
+        return jsonify({"error": str(e)}), 500
