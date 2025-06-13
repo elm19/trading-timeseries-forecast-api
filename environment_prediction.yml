@@ -12,4 +12,5 @@ dependencies:
   - tensorflow
   - keras
   - ipykernel
+  - yfinance
 prefix: /home/elm19/miniconda3/envs/goldspot-predictor
