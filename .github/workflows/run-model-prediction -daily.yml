@@ -1,0 +1,36 @@
+name: Run Model Predictions Daily
+
+on:
+  schedule:
+    - cron: '0 10 * * 1-5' # Runs at 10:00 UTC on business days (Monday to Friday)
+
+jobs:
+  run-predictions:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Miniconda
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          auto-activate-base: false
+          activate-environment: prediction-env
+          environment-file: environment_prediction.yml
+          python-version: 3.11
+
+      - name: Install pip-only packages
+        shell: bash -l {0}
+        run: |
+          pip install yfinance pandas_ta==0.3.14b0
+      
+      - name: Run prediction script
+        shell: bash -l {0}
+        run: |
+          python models/model1/predict.py
+
+      - name: Display script output
+        shell: bash -l {0}
+        run: |
+          echo "Script output displayed above."
