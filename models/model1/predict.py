@@ -97,7 +97,7 @@ X, y = sequence(df)
 print("Data sequenced check")
 
 # Load model
-model = load_model('models/model1/regulized_model.h5')
+model = load_model('models/model1/regulized_model.keras')
 proba = model.predict(X)
 pred_ix = np.argmax(proba, axis=1)
 print("Model predictions made check")
