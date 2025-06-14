@@ -8,14 +8,23 @@ import yfinance as yf
 from keras.utils import to_categorical
 import pandas_ta as ta
 import requests
-import matplotlib.pyplot as plt
+api_link = 'https://elm19.pythonanywhere.com/'
+data_t = yf.download('GC=F', period='80d')[['Open', 'High', 'Low', 'Close', 'Volume']]
+data_t = data_t.rename(columns={'Close': 'close', 'Open': 'open', 'High': 'high', 'Low': 'low', 'Volume': 'volume'})
+data_t = data_t.reset_index().rename(columns={'Date': 'Date'})
+data_t.columns.name = None
 
-api_link = "https://elm19.pythonanywhere.com/"
-# Define the process function
-def treat(df):
-    # Adjust column names to match Yahoo Finance data structure
-    df.rename(columns={"Adj Close": "close", "Open": "open", "High": "high", "Low": "low", "Volume": "volume"}, inplace=True)
-    return df
+data_t.columns = data_t.columns.droplevel(1)  # removes the Ticker level
+
+df = data_t.reset_index(drop=True)  # removes "Price" as index name
+df['Date'] = pd.to_datetime(df['Date'])  # ensure datetime
+df = data_t[["Date", "close", "open", "high", "low", "volume"]]
+
+df = df.set_index('Date')  # set 'Date' as index
+df.index.name = 'Date'  # optional: name the index explicitly
+df.columns.name = None
+print("data imported", df.head())
+
 
 def indicators(df):
     # Add several technical indicators
@@ -26,6 +35,10 @@ def indicators(df):
 
     df.dropna(inplace=True)
     return df
+    
+df = indicators(df)
+print("Indicators added check")
+
 
 def add_target(df, lookahead=5):
     df = df.copy()
@@ -47,17 +60,24 @@ def add_target(df, lookahead=5):
 
     df['target'] = targets
     return df
+df = add_target(df)
+print("Target added check")
 
 def standardize(df, scaler=None):
     df = df.copy()
     features = df.drop(columns=['target']) if 'target' in df.columns else df
-    
     scaled = scaler.transform(features)
     scaled_df = pd.DataFrame(scaled, columns=features.columns, index=df.index)
     if 'target' in df.columns:
         scaled_df['target'] = df['target'].values
 
     return scaled_df
+
+# Load scaler
+scaler = joblib.load('models/model1/scaler.pkl')
+# Process data
+df = standardize(df, scaler)
+print("Data standardized check")
 
 def sequence(df, seq_len=20):
     target = df['target']
@@ -73,75 +93,33 @@ def sequence(df, seq_len=20):
     Y = to_categorical(Y, num_classes=3)
 
     return X, Y
-
-def process(df_raw, scaler, dev = True, ind=True):
-    df = df_raw.copy()
-    if dev: 
-        df = treat(df)
-    if ind:
-        df = indicators(df)
-    df = add_target(df, lookahead=7)
-    df = standardize(df, scaler=scaler)
-    X, Y = sequence(df)
-    return X, Y
-
-# Fetch latest 55 data points for gold futures market from Yahoo Finance
-data = yf.download('GC=F', period='55d', interval='1d', auto_adjust=False)
-data.reset_index(inplace=True)
-print("Data fetched:", data.head())
-# Load scaler
-scaler = joblib.load('models/model1/scaler.pkl')
-
-# Process data
-X, Y = process(data, scaler, dev=True)
+X, y = sequence(df)
+print("Data sequenced check")
 
 # Load model
 model = load_model('models/model1/regulized_model.h5')
-
-# Predict
 proba = model.predict(X)
 pred_ix = np.argmax(proba, axis=1)
-
+print("Model predictions made check")
 # Map predictions to labels
 class_map = {0: 'sell', 1: 'hold', 2: 'buy'}
 pred_labels = [class_map[i] for i in pred_ix]
 
-# Count buy signals
-counts = Counter(pred_labels)
-print("Counts:", counts)
 
 # Send predictions to API
 api_url = api_link + "/save-predictions"
 headers = {"Content-Type": "application/json"}
 
-for date, proba, label in zip(data['Date'][-len(pred_labels):], proba, pred_labels):
-    payload = {
-        "date": date.strftime("%a, %d %b %Y %H:%M:%S GMT"),
-        "modelid": "model1",
-        "prediction": label,
-        "proba_buy": float(proba[2]),
-        "proba_hold": float(proba[1]),
-        "proba_sell": float(proba[0])
-    }
-    response = requests.post(api_url, json=payload, headers=headers)
-    if response.status_code == 200:
-        print(f"Successfully sent prediction for {date}")
-    else:
-        print(f"Failed to send prediction for {date}: {response.text}")
-
-# Plot the predictions
-plt.figure(figsize=(10, 6))
-plt.plot(data['Date'][-len(pred_labels):], [proba[i][2] for i in range(len(proba))], label='Buy Probability', color='green')
-plt.plot(data['Date'][-len(pred_labels):], [proba[i][1] for i in range(len(proba))], label='Hold Probability', color='blue')
-plt.plot(data['Date'][-len(pred_labels):], [proba[i][0] for i in range(len(proba))], label='Sell Probability', color='red')
-plt.xlabel('Date')
-plt.ylabel('Probability')
-plt.title('Prediction Probabilities')
-plt.legend()
-plt.grid()
-plt.show()
-
-# Plot the head of the imported data
-plt.figure(figsize=(10, 6))
-data.head().plot(kind='bar', x='Date', y=['open', 'high', 'low', 'close'], title='Market Data Head')
-plt.show()
+payload = {
+    "date": df['Date'].max().strftime('%Y-%m-%d'),
+    "modelid": "model1",
+    "prediction": pred_labels[-1],
+    "proba_buy": float(proba[-1][2]),
+    "proba_hold": float(proba[-1][1]),
+    "proba_sell": float(proba[-1][0])
+}
+response = requests.post(api_url, json=payload, headers=headers)
+if response.status_code == 200:
+    print(f"Successfully sent prediction for {df['Date'].max().strftime('%Y-%m-%d'),}")
+else:
+    print(f"Failed to send prediction for {df['Date'].max().strftime('%Y-%m-%d'),}: {response.text}")
