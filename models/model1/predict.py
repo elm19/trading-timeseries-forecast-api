@@ -12,12 +12,16 @@ api_link = 'https://elm19.pythonanywhere.com/'
 data_t = yf.download('GC=F', period='80d')[['Open', 'High', 'Low', 'Close', 'Volume']]
 data_t = data_t.rename(columns={'Close': 'close', 'Open': 'open', 'High': 'high', 'Low': 'low', 'Volume': 'volume'})
 data_t = data_t.reset_index().rename(columns={'Date': 'Date'})
-data_t.columns.name = None
 
+
+data_t.columns.name = None
 data_t.columns = data_t.columns.droplevel(1)  # removes the Ticker level
 
-df = data_t.reset_index(drop=True)  # removes "Price" as index name
-df['Date'] = pd.to_datetime(df['Date'])  # ensure datetime
+
+if data_t.empty or data_t.isnull().all().all():
+    print("Download failed or returned no usable data.  using another source")
+    data_t = pd.read_csv('models/model1/scaler.pkl', parse_dates=['Date'])
+
 df = data_t[["Date", "close", "open", "high", "low", "volume"]]
 
 df = df.set_index('Date')  # set 'Date' as index
