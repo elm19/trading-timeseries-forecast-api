@@ -50,8 +50,8 @@ def save_predictions_to_db():
             query = text("INSERT INTO predictions (date, modelid, prediction, proba_buy, proba_hold, proba_sell) VALUES (:date, :modelid, :prediction, :proba_buy, :proba_hold, :proba_sell)")
             connection.execute(query, {
                 "date": data.get('date'),
-                "modelid": data.get('modelid'),
                 "prediction": data.get('prediction'),
+                "modelid": data.get('modelid'),
                 "proba_buy": data.get('proba_buy'),
                 "proba_hold": data.get('proba_hold'),
                 "proba_sell": data.get('proba_sell')

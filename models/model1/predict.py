@@ -20,7 +20,7 @@ data_t.columns = data_t.columns.droplevel(1)  # removes the Ticker level
 
 if data_t.empty or data_t.isnull().all().all():
     print("Download failed or returned no usable data.  using another source")
-    data_t = pd.read_csv('models/model1/scaler.pkl', parse_dates=['Date'])
+    data_t = pd.read_csv('models/model1/data.csv', parse_dates=['Date'])
 
 df = data_t[["Date", "close", "open", "high", "low", "volume"]]
 
@@ -109,21 +109,23 @@ print("Model predictions made check")
 class_map = {0: 'sell', 1: 'hold', 2: 'buy'}
 pred_labels = [class_map[i] for i in pred_ix]
 
-
+print("test",pred_labels[-1], proba[-1])
 # Send predictions to API
 api_url = api_link + "/save-predictions"
 headers = {"Content-Type": "application/json"}
+print(df.index[-1].strftime('%Y-%m-%d'))
 
 payload = {
-    "date": df['Date'].max().strftime('%Y-%m-%d'),
+    "date": df.index[-1].strftime('%Y-%m-%d'),
     "modelid": "model1",
     "prediction": pred_labels[-1],
     "proba_buy": float(proba[-1][2]),
     "proba_hold": float(proba[-1][1]),
     "proba_sell": float(proba[-1][0])
 }
+print(payload)
 response = requests.post(api_url, json=payload, headers=headers)
 if response.status_code == 200:
-    print(f"Successfully sent prediction for {df['Date'].max().strftime('%Y-%m-%d'),}")
+    print(f"Successfully sent prediction for {df.index[-1].strftime('%Y-%m-%d'),}")
 else:
-    print(f"Failed to send prediction for {df['Date'].max().strftime('%Y-%m-%d'),}: {response.text}")
+    print(f"Failed to send prediction for {df.index[-1].strftime('%Y-%m-%d'),}: {response.text}")
